@@ -1,12 +1,14 @@
+import os
+
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from werkzeug.security import generate_password_hash
-from app.models import db, User, Post
+
+from app.models import db, User
 from app.utils.file_handlers import (
-    handle_error, check_email, save_file,
+    handle_error, save_file,
     get_user_info, get_user_post_info, combine_index_post
 )
-from app.utils.jwt_auth import create_token, auth_required
+from app.utils.jwt_auth import auth_required
 
 user_bp = Blueprint('user', __name__)
 
@@ -50,11 +52,23 @@ def update_avatar():
     if not file:
         return jsonify({'error': '文件为空'}), 400
 
+    user = User.query.get_or_404(user_id)
+
+    # 删除旧头像
+    if user.avatar:
+        old_path = user.avatar.replace('http://localhost:8000', '')
+        try:
+            old_file = os.path.join(current_app.root_path, old_path.lstrip('/'))
+            if os.path.exists(old_file):
+                os.remove(old_file)
+        except OSError:
+            pass  # 忽略删除失败的错误
+
+    # 保存新头像
     filepath = save_file(file, 'avatar', user_id)
     if not filepath:
         return jsonify({'error': '文件上传失败'}), 400
 
-    user = User.query.get_or_404(user_id)
     user.avatar = f"http://localhost:8000{filepath}"
     db.session.commit()
 
