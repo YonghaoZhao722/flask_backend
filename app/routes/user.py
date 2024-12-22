@@ -112,6 +112,8 @@ def unfollow():
     return jsonify({'error': '未关注该用户'}), 400
 
 
+PAGE_SIZE=10
+
 @user_bp.route('/remove/fan/', methods=['POST'])
 @jwt_required()
 @handle_error
@@ -142,7 +144,7 @@ def query_user_index_post():
     data = request.json
     user_id = data.get('user_id')
     types = data.get('types')
-    offset = data.get('offset')
+    offset = data.get('offset', 0)  # 提供默认值0
 
     # 查询用户
     user = User.query.filter_by(id=user_id).first()
@@ -152,14 +154,24 @@ def query_user_index_post():
         field_name = type_mapping[types]
         post_query = getattr(user, field_name)
 
-        # 分页查询，限制10条
-        posts = post_query.offset(offset).limit(10).all()
+        # 获取总数，用于判断是否还有更多数据
+        total_count = post_query.count()
+
+        # 分页查询
+        posts = post_query.offset(offset).limit(PAGE_SIZE).all()
+
+        # 判断是否还有更多数据
+        has_more = (offset + len(posts)) < total_count
 
         if posts:
             return jsonify({
-                'info': combine_index_post(posts)
+                'info': combine_index_post(posts),
+                'has_more': has_more
             })
-        return jsonify({'info': []})
+        return jsonify({
+            'info': [],
+            'has_more': False
+        })
 
     return jsonify({'error': '错误访问'}), 404
 

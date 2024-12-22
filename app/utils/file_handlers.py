@@ -72,7 +72,7 @@ def check_and_delete(*, id, mainPath):
         return False
 
 
-def paginate_query(query, offset, limit=20):
+def paginate_query(query, offset, limit=3):
     """
     分页查询
     """

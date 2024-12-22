@@ -35,6 +35,20 @@ def get_post_detail():
     })
 
 
+# 常量定义
+PAGE_SIZE = 10
+
+
+def paginate_query(query, offset):
+    """
+    分页查询
+    :param query: SQLAlchemy query对象
+    :param offset: 偏移量
+    :return: 分页后的查询结果
+    """
+    return query.offset(offset).limit(PAGE_SIZE).all()
+
+
 @post_bp.route('/', methods=['POST', 'GET'])
 @handle_error
 def query_post_index():
@@ -42,10 +56,21 @@ def query_post_index():
     print(f"Request data: {request.json}")
     offset = int(request.json.get('offset', 0))
     posts = Post.query
+
+    # 获取总数，用于判断是否还有更多数据
+    total_count = posts.count()
+
     paginated_posts = list(combine_index_post(
         paginate_query(posts, offset)
     ))
-    return jsonify({'info': paginated_posts})
+
+    # 返回数据时包含是否还有更多数据的信息
+    has_more = (offset + len(paginated_posts)) < total_count
+
+    return jsonify({
+        'info': paginated_posts,
+        'has_more': has_more
+    })
 
 
 @post_bp.route('/control/', methods=['POST', 'GET'])
