@@ -10,7 +10,6 @@ from app.utils.file_handlers import (
 # 创建独立路由蓝图
 independent_bp = Blueprint('independent', __name__)
 
-# 用户相关
 @independent_bp.route('/login/', methods=['POST'])
 @handle_error
 def login():
@@ -24,21 +23,21 @@ def login():
         is_valid = check_password_hash(user.password_hash, password)
 
         if is_valid:
-            # 创建token
+            # Creating a token
             token = create_token(user)
 
-            # 构建返回数据
+            # Constructing return data
             response_data = {
                 "id": user.id,
                 "username": user.username,
                 "avatar": user.avatar,
-                "signature": user.signature or "暂时没有个性签名~",
+                "signature": user.signature or "No bio yet~",
                 "token": token
             }
 
             return jsonify(response_data), 200
         else:
-            return jsonify({"error": "Invalid password"}), 401
+            return jsonify({"error": "Wrong password"}), 401
     else:
         return jsonify({"error": "User not found"}), 401
 
@@ -50,30 +49,61 @@ def register():
     email = data.get('email')
     password = data.get('password')
 
-    # 检查邮箱是否已被注册
     if check_email(email):
-        return jsonify({'error': '该邮箱已被注册'}), 401
+        return jsonify({'error': 'This email address has been registered'}), 401
 
     try:
-        # 对密码进行加密
         hashed_password = generate_password_hash(password)
 
-        # 创建用户对象，并将加密后的密码存储
         user = User(
             username=username,
             email=email,
-            password_hash=hashed_password  # 存储加密后的密码
+            password_hash=hashed_password
         )
 
-        # 将用户信息保存到数据库
         db.session.add(user)
         db.session.commit()
 
-        return jsonify({'info': '创建用户成功'})
+        return jsonify({'info': 'User created successfully'})
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"User creation failed: {str(e)}")
-        return jsonify({'error': '创建用户失败'}), 401
+        return jsonify({'error': 'Failed to create user'}), 401
+
+
+@independent_bp.route('/change-password/', methods=['POST'])
+@handle_error
+@jwt_required()
+def change_password():
+    data = request.get_json()
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    # 获取当前用户ID
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
+    if not current_user:
+        return jsonify({"error": "User not found"}), 401
+
+    # 验证旧密码
+    if not check_password_hash(current_user.password_hash, old_password):
+        return jsonify({"error": "Current password is incorrect"}), 401
+
+    try:
+        # Generate a hash of the new password
+        new_password_hash = generate_password_hash(new_password)
+
+        # Update Password
+        current_user.password_hash = new_password_hash
+        db.session.commit()
+
+        return jsonify({"message": "Password updated successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Password update failed: {str(e)}")
+        return jsonify({"error": "Failed to update password"}), 500
 
 @independent_bp.route('/index/', methods=['POST'])
 @handle_error
@@ -132,16 +162,19 @@ def upload_post():
         return jsonify({'error': '文件上传失败'}), 400
 
     try:
+        # 只存储相对路径
         image = Image(
             post_id=post_id,
-            image_path=f"http://localhost:8000{filepath}",
-            # TODO: 获取图片尺寸
+            image_path=filepath,
             height=0,
             width=0
         )
         db.session.add(image)
         db.session.commit()
-        return jsonify({'data': 'success'})
+
+        # 返回完整 URL 给前端
+        full_path = f"{request.host_url.rstrip('/')}{filepath}"
+        return jsonify({'data': 'success', 'filepath': full_path})
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Image save failed: {str(e)}")

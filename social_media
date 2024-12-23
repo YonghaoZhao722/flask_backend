@@ -1,0 +1,252 @@
+-- MySQL dump 10.13  Distrib 5.7.41, for Win64 (x86_64)
+--
+-- Host: localhost    Database: social_media
+-- ------------------------------------------------------
+-- Server version	5.7.41
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `alembic_version`
+--
+
+DROP TABLE IF EXISTS `alembic_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `alembic_version` (
+  `version_num` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`version_num`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `alembic_version`
+--
+
+LOCK TABLES `alembic_version` WRITE;
+/*!40000 ALTER TABLE `alembic_version` DISABLE KEYS */;
+INSERT INTO `alembic_version` VALUES ('82bb617c3246');
+/*!40000 ALTER TABLE `alembic_version` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `collections`
+--
+
+DROP TABLE IF EXISTS `collections`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `collections` (
+  `user_id` int(11) DEFAULT NULL,
+  `post_id` int(11) DEFAULT NULL,
+  KEY `user_id` (`user_id`),
+  KEY `post_id` (`post_id`),
+  CONSTRAINT `collections_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+  CONSTRAINT `collections_ibfk_2` FOREIGN KEY (`post_id`) REFERENCES `post` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `collections`
+--
+
+LOCK TABLES `collections` WRITE;
+/*!40000 ALTER TABLE `collections` DISABLE KEYS */;
+INSERT INTO `collections` VALUES (4,14);
+/*!40000 ALTER TABLE `collections` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `comment`
+--
+
+DROP TABLE IF EXISTS `comment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `comment` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `post_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `content` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `parent_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `post_id` (`post_id`),
+  KEY `user_id` (`user_id`),
+  KEY `parent_id` (`parent_id`),
+  CONSTRAINT `comment_ibfk_1` FOREIGN KEY (`post_id`) REFERENCES `post` (`id`),
+  CONSTRAINT `comment_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+  CONSTRAINT `comment_ibfk_3` FOREIGN KEY (`parent_id`) REFERENCES `comment` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `comment`
+--
+
+LOCK TABLES `comment` WRITE;
+/*!40000 ALTER TABLE `comment` DISABLE KEYS */;
+INSERT INTO `comment` VALUES (1,21,5,'don\'t read it hanni, it\'s a bad review','2024-12-21 04:41:34',NULL);
+/*!40000 ALTER TABLE `comment` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `favorites`
+--
+
+DROP TABLE IF EXISTS `favorites`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `favorites` (
+  `user_id` int(11) DEFAULT NULL,
+  `post_id` int(11) DEFAULT NULL,
+  KEY `user_id` (`user_id`),
+  KEY `post_id` (`post_id`),
+  CONSTRAINT `favorites_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+  CONSTRAINT `favorites_ibfk_2` FOREIGN KEY (`post_id`) REFERENCES `post` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `favorites`
+--
+
+LOCK TABLES `favorites` WRITE;
+/*!40000 ALTER TABLE `favorites` DISABLE KEYS */;
+INSERT INTO `favorites` VALUES (5,11),(4,16),(4,11),(5,21),(9,11),(4,20),(4,19),(4,18),(4,14);
+/*!40000 ALTER TABLE `favorites` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `followers`
+--
+
+DROP TABLE IF EXISTS `followers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `followers` (
+  `follower_id` int(11) DEFAULT NULL,
+  `followed_id` int(11) DEFAULT NULL,
+  KEY `follower_id` (`follower_id`),
+  KEY `followed_id` (`followed_id`),
+  CONSTRAINT `followers_ibfk_1` FOREIGN KEY (`follower_id`) REFERENCES `user` (`id`),
+  CONSTRAINT `followers_ibfk_2` FOREIGN KEY (`followed_id`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `followers`
+--
+
+LOCK TABLES `followers` WRITE;
+/*!40000 ALTER TABLE `followers` DISABLE KEYS */;
+INSERT INTO `followers` VALUES (5,4),(4,5),(4,7);
+/*!40000 ALTER TABLE `followers` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `image`
+--
+
+DROP TABLE IF EXISTS `image`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `image` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `post_id` int(11) NOT NULL,
+  `image_path` varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `height` int(11) DEFAULT NULL,
+  `width` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `post_id` (`post_id`),
+  CONSTRAINT `image_ibfk_1` FOREIGN KEY (`post_id`) REFERENCES `post` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `image`
+--
+
+LOCK TABLES `image` WRITE;
+/*!40000 ALTER TABLE `image` DISABLE KEYS */;
+INSERT INTO `image` VALUES (10,11,'http://localhost:8000/static/img\\post\\11-gucci girl～～_1_铃屋什造_来自小红书网页版.jpg',0,0),(11,11,'http://localhost:8000/static/img\\post\\11-gucci girl～～_3.jpg',0,0),(12,11,'http://localhost:8000/static/img\\post\\11-hanni.jpg',0,0),(14,13,'http://localhost:8000/static/img\\post\\13-20241220222725.png',0,0),(15,14,'http://localhost:8000/static/img\\post\\14-vodka.jpg',0,0),(17,16,'http://localhost:8000/static/img\\post\\16-a0d6b822a3579ccdd8e4b24827d53d9.png',0,0),(18,16,'http://localhost:8000/static/img\\post\\16-fb2534e3787df22794e27fecc1163fc.png',0,0),(19,17,'http://localhost:8000/static/img\\post\\17-gym.jpg',0,0),(20,18,'http://localhost:8000/static/img\\post\\18-eb09e3d480ef98299edea7b143174e2.png',0,0),(21,19,'http://localhost:8000/static/img\\post\\19-like.jpg',0,0),(22,20,'http://localhost:8000/static/img\\post\\20-distribution.jpg',0,0),(23,21,'http://localhost:8000/static/img\\post\\21-jeanz the wizard.jpg',0,0),(24,22,'http://localhost:8000/static/img\\post\\22-ms.jpg',0,0),(25,22,'http://localhost:8000/static/img\\post\\22-ns2.jpg',0,0),(26,22,'http://localhost:8000/static/img\\post\\22-ms1.jpg',0,0),(27,22,'http://localhost:8000/static/img\\post\\22-ms3.jpg',0,0),(28,23,'http://localhost:8000/static/img\\post\\23-GettYN9a4AAQulx.jpg',0,0),(29,24,'http://localhost:8000/static/img\\post\\24-criminal.jpg',0,0),(30,25,'http://localhost:8000/static/img\\post\\25-minji1.jpg',0,0),(31,25,'http://localhost:8000/static/img\\post\\25-minji3.jpg',0,0),(32,25,'http://localhost:8000/static/img\\post\\25-minji2.jpg',0,0),(33,25,'http://localhost:8000/static/img\\post\\25-minji4.jpg',0,0);
+/*!40000 ALTER TABLE `image` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `post`
+--
+
+DROP TABLE IF EXISTS `post`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `post` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `title` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content` text COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `post_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `post`
+--
+
+LOCK TABLES `post` WRITE;
+/*!40000 ALTER TABLE `post` DISABLE KEYS */;
+INSERT INTO `post` VALUES (11,7,'phamllelujah','#GucciHorsebit1955 #HANNI','2024-12-20 14:25:53'),(13,5,'Here are some ways to make cats happy:','1. Playtime: Engage your cat with interactive toys like feather wands, laser pointers, or balls. Regular play sessions help keep them active and mentally stimulated.\n \n2. Comfortable Spaces: Cats love cozy spots. Provide them with soft bedding, blankets, or even boxes for lounging.\n\n3. Climbing Opportunities: Cats enjoy being up high, so giving them cat trees or window perches allows them to explore vertically and feel safe.\n\n4. Scratching Posts: Cats need to scratch to keep their claws healthy and to mark their territory. A good scratching post keeps them satisfied and your furniture safe.\n\n5. Routine & Attention: Cats enjoy routines. Regular feeding times and attention, such as petting or grooming, helps them feel secure.\n\n6. Safe Outdoor Time: If possible, let your cat experience the outdoors safely through a secure catio or on a leash. This allows them to enjoy fresh air and explore new scents.\n\nHappy cats feel safe, entertained, and loved!','2024-12-20 14:30:00'),(14,4,'Replacing cooking wine with vodka is the best thing I did','Finally, there is no special odor anymore. \nThe meat doesn\'t smell fishy anymore. \nVodka, vodka, I love you.','2024-12-20 14:32:40'),(16,8,'POV: your code doesn\'t work','Truly what programming feels like','2024-12-20 15:03:37'),(17,9,'I go to the gym after class every day.','today I did chest+shoulders+triceps (pribably my fav day)\nwhat’s your usual split???','2024-12-20 15:08:53'),(18,5,'Spinning cat meme road sign ?','#oiiaioiiiai #spinningcat #catmemes','2024-12-20 15:10:16'),(19,4,'One trillion likes to the library','#Heaven should look like a library #Collect likes #College student #Final exam #Final exam review','2024-12-20 15:18:16'),(20,5,'I discovered the normal distribution when I was working out.','','2024-12-21 04:38:15'),(21,7,'jeanz the wizard','','2024-12-21 04:39:35'),(22,8,'Microsoft released some high-definition pictures... in 2024','#retro #Microsoft #aesthetic #aesthetic accumulation #aesthetic improvement #aesthetic sharing','2024-12-21 04:43:22'),(23,9,'Good morning ☀️','Breakfast at Matsuya today ?','2024-12-21 05:15:59'),(24,4,'Are so many people crazy for supporting a \"criminal\"?','Some people think this phenomenon is very strange, that so many people support a criminal.\n1️⃣\"Crime is wrong, and we should unconditionally oppose criminals.\" This idea can only be said to be disciplined by society, like a machine that has lost its ability to think.\n\"murder = crime\", when such a law was formulated, the starting point was of course good. But when society formulates a law, it should be to provide a basis for the handling of related controversial events, so as to facilitate the handling of thousands of similar disputes; rather than to treat the basis as an imperial decree, and use the law to cut across the board and deal with it rigidly. It should not make people lose their ability to think, and mindlessly equate the law with value judgments and views of right and wrong, saying things like \"as long as the law is broken, it is unconditionally wrong\"?\n2️⃣If the brother breaks the law, he needs to pay the legal price. But he is not necessarily wrong, and he and more people will also reap benefits beyond the law. If the total benefit is greater than the legal cost, then the violation is worth it for him\n3️⃣ The CEO may have his problems, but he does not necessarily deserve to die. He may be blamed for a lot of the problem of black health insurance in the United States, but he does not bear all the blame. What pushed him to this position to do evil is the idea of ​​\"maximizing profits\", which comes from the social system and economic environment\n4️⃣ Netizens who support \"criminals\" may say something like \"the dead deserve to die\". But do they really support shark people? Do they really support the death penalty instead of law? No. They hope that the law can punish the black-hearted health insurance industry in the United States, and they hope that policies can restrict the mainstream but potentially problematic model of \"maximizing shareholder profits\". But the inaction of laws and policies did not play the role people expected, so they just expressed their long-accumulated dissatisfaction through such \"crime support\" behavior. Instead of arguing with such netizens, it is better to seriously think about what is wrong with the laws we have made, and whether the principle of \"maximizing shareholder interests\" is out of date.\n5️⃣Similar problems are that more and more people are lying down, not getting married, not having children, rebelling against their superiors, and rebelling against 996. Some of them will hate the opposite gender and violate company regulations. Do they really have a deep hatred for a specific opposite sex or company? No. They are just rebelling against this employment environment, labor market, and marriage market that have become like this inexplicably. The people who should reflect on this are not ordinary people, but the group that formulates and protects the problematic social system.\n#Luigi  #American Insurance','2024-12-21 05:21:37'),(25,4,'Being this cute again','Ahhhhh that I finally picked out a super suitable baby clothes! ! ! lol','2024-12-21 05:29:48');
+/*!40000 ALTER TABLE `post` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `user`
+--
+
+DROP TABLE IF EXISTS `user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `user` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `email` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `username` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password_hash` varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `avatar` varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `signature` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `user`
+--
+
+LOCK TABLES `user` WRITE;
+/*!40000 ALTER TABLE `user` DISABLE KEYS */;
+INSERT INTO `user` VALUES (4,'1136416447@qq.com','奶味蓝','scrypt:32768:8:1$GIJ3lmkrUO9lGjCu$3defa98fabeb9684540d0605aa21722705a9c7e6b0c5c36cd3b947da30b95876646d0291ea7b529ccce18135c6e234eb91c5542e3781e8295790a97e3359567d','http://localhost:8000/static/img\\avatar\\4-hanni.jpg','1'),(5,'neverlandle@foxmail.com','nwl','scrypt:32768:8:1$MBzlI0ktADFX0uRb$0d4e382b1c4293dfa9a7c7063af4aca4f268ebc2053154fe0f38aab8d09b05de3bfc76731b83e2fe77ce9b2f10ee74d090cd6b1d69c40cecc9016b6b79d9903c','http://localhost:8000/static/img\\avatar\\5-1040g2jo31auhfu337i005o1bovjgbrahjsfq490.jpg','hanni'),(6,'123@163.com','113641','scrypt:32768:8:1$ebz8DHwLLLUdZ7qf$41ecc2ba67acc0611aa19d8e92e945610b378c4e95db95d8061a28e9423d9fbfb3c2143b0e785946bb127f7f76cb4549b117e5706837060adaa30aca49cd9f46','http://localhost:8000/static/img/avatar/defaultAvatar.png','暂时没有个性签名~'),(7,'newjeans@qq.com','jeanzforfree','scrypt:32768:8:1$reqrqOkco1YwFFbE$89f0c1bd24650c94be71d1cce09bee29febcefa1f8e8e950139bd4aab8a837f7c2338b19315c76ca339eaed630b41a7e8e3db901775959e7d8dd8bcf31f204c8','http://localhost:8000/static/img\\avatar\\7-jeanzforfree.jpg','暂时没有个性签名~'),(8,'kbruce@qq.com','kbruce','scrypt:32768:8:1$AnZp87bhSv6DKvnB$75ea2856a2db2f6de6e2a1b28d652b635dabcac4b89fb20c3ff0ce107a5f3e135aeead186023831c4808697318b51f94318ecabb3fdf950538d3eef6037b2a9d','http://localhost:8000/static/img\\avatar\\8-kbruce.jpg','暂时没有个性签名~'),(9,'kika@qq.com','Kika','scrypt:32768:8:1$jCHqPu5OA5CLiVud$924dcd1ef15b90cb18ad873cdb3d18161f17ca9b507554c7cee9b942a99b50e09fcc3bfb2b1c4b69652a9fe9275279bd5c49611c249ad7b391af7cbc831ccd10','http://localhost:8000/static/img\\avatar\\9-kika.jpg','暂时没有个性签名~');
+/*!40000 ALTER TABLE `user` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2024-12-22 15:57:08

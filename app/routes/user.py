@@ -54,12 +54,13 @@ def update_avatar():
 
     user = User.query.get_or_404(user_id)
 
-    # 删除旧头像
+    # 删除旧头像（修正路径处理）
     if user.avatar:
+        # 如果是完整 URL，提取相对路径
         old_path = user.avatar.replace('http://localhost:8000', '')
         try:
             old_file = os.path.join(current_app.root_path, old_path.lstrip('/'))
-            if os.path.exists(old_file):
+            if os.path.exists(old_file) and 'defaultAvatar' not in old_file:
                 os.remove(old_file)
         except OSError:
             pass  # 忽略删除失败的错误
@@ -69,12 +70,15 @@ def update_avatar():
     if not filepath:
         return jsonify({'error': '文件上传失败'}), 400
 
-    user.avatar = f"http://localhost:8000{filepath}"
+    # 存储相对路径
+    user.avatar = filepath
     db.session.commit()
 
+    # 返回完整 URL 给前端
+    full_path = f"{request.host_url.rstrip('/')}{filepath}"
     return jsonify({
         'filename': file.filename,
-        'filepath': user.avatar
+        'filepath': full_path
     })
 
 
@@ -136,20 +140,23 @@ def remove_fans():
 def query_user_index_post():
     # 类型映射字典
     type_mapping = {
-        '帖子': 'posts',
-        '点赞': 'favorites',
-        '收藏': 'collected',
+        'Posts': 'posts',
+        'Likes': 'favorites',
+        'Collections': 'collected',
     }
 
     data = request.json
     user_id = data.get('user_id')
     types = data.get('types')
     offset = data.get('offset', 0)  # 提供默认值0
-
+    print(data)
     # 查询用户
     user = User.query.filter_by(id=user_id).first()
-
+    print(user)
+    print(type_mapping)
+    print(types)
     if user and types in type_mapping:
+        print(111)
         # 获取对应的属性（posts/favorites/collected）
         field_name = type_mapping[types]
         post_query = getattr(user, field_name)

@@ -1,13 +1,68 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Post, User, Image
+
+from app.models import db, Post, User
 from app.utils.file_handlers import (
     handle_error, convert_to_timezone,
-    combine_index_post, save_file,
-    check_and_delete, paginate_query
+    combine_index_post, check_and_delete
 )
-from app.utils.jwt_auth import create_token, auth_required
+from app.utils.jwt_auth import auth_required
+
 post_bp = Blueprint('post', __name__)
+
+PAGE_SIZE = 10
+
+
+def paginate_query(query, offset):
+    """
+    分页查询
+    :param query: SQLAlchemy query对象
+    :param offset: 偏移量
+    :return: 分页后的查询结果
+    """
+    return query.offset(offset).limit(PAGE_SIZE).all()
+
+
+# 添加 KMP 搜索算法的实现
+def build_next(pattern):
+    """构建 KMP 算法的 next 数组"""
+    next_array = [0]
+    prefix = 0
+    i = 1
+
+    while i < len(pattern):
+        if pattern[prefix] == pattern[i]:
+            prefix += 1
+            next_array.append(prefix)
+            i += 1
+        elif prefix == 0:
+            next_array.append(0)
+            i += 1
+        else:
+            prefix = next_array[prefix - 1]
+
+    return next_array
+
+
+def kmp_search(text, pattern):
+    """KMP Search Algorithm"""
+    if not pattern or not text:
+        return -1
+
+    next_array = build_next(pattern)
+    i = 0  # text pointer
+    j = 0  # pattern pointer
+
+    while i < len(text) and j < len(pattern):
+        if text[i] == pattern[j]:
+            i += 1
+            j += 1
+        elif j == 0:
+            i += 1
+        else:
+            j = next_array[j - 1]
+
+    return i - j if j == len(pattern) else -1
 
 
 @post_bp.route('/detail/', methods=['POST', 'GET'])
@@ -35,40 +90,38 @@ def get_post_detail():
     })
 
 
-# 常量定义
-PAGE_SIZE = 10
-
-
-def paginate_query(query, offset):
-    """
-    分页查询
-    :param query: SQLAlchemy query对象
-    :param offset: 偏移量
-    :return: 分页后的查询结果
-    """
-    return query.offset(offset).limit(PAGE_SIZE).all()
-
 
 @post_bp.route('/', methods=['POST', 'GET'])
 @handle_error
 def query_post_index():
     print(f"Request method: {request.method}")
     print(f"Request data: {request.json}")
+
     offset = int(request.json.get('offset', 0))
-    posts = Post.query
+    search_query = request.json.get('query', '').lower()
 
-    # 获取总数，用于判断是否还有更多数据
-    total_count = posts.count()
+    # 获取按时间倒序排列的帖子
+    posts = Post.query.order_by(Post.created_at.desc())
 
-    paginated_posts = list(combine_index_post(
-        paginate_query(posts, offset)
-    ))
+    if search_query:
+        all_posts = posts.all()
+        filtered_posts = [
+            post for post in all_posts
+            if kmp_search(post.title.lower(), search_query) != -1
+        ]
 
-    # 返回数据时包含是否还有更多数据的信息
-    has_more = (offset + len(paginated_posts)) < total_count
+        total_count = len(filtered_posts)
+        paginated_posts = filtered_posts[offset:offset + PAGE_SIZE]
+    else:
+        total_count = posts.count()
+        paginated_posts = paginate_query(posts, offset)
+
+    result_posts = list(combine_index_post(paginated_posts))
+
+    has_more = (offset + len(result_posts)) < total_count
 
     return jsonify({
-        'info': paginated_posts,
+        'info': result_posts,
         'has_more': has_more
     })
 
@@ -80,8 +133,8 @@ def control_like_collect():
     user_id = get_jwt_identity()
     data = request.json
     post_id = data.get('post_id')
-    operator = data.get('operator')  # true为删除，false为新增
-    type_ = data.get('type')  # like或collect
+    operator = data.get('operator')
+    type_ = data.get('type')
 
     user = User.query.get_or_404(user_id)
     post = Post.query.get_or_404(post_id)
@@ -91,11 +144,11 @@ def control_like_collect():
             if operator:  # 删除喜欢
                 if post in user.favorites:
                     user.favorites.remove(post)
-                    msg = '成功取消喜欢'
+                    msg = 'Unliked Successfully'
             else:  # 添加喜欢
                 if post not in user.favorites:
                     user.favorites.append(post)
-                    msg = '成功添加喜欢'
+                    msg = 'Like Successfully'
         elif type_ == 'collect':
             if operator:  # 取消收藏
                 if post in user.collected:

@@ -30,7 +30,7 @@ class User(db.Model):
     username = db.Column(db.String(32), nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     avatar = db.Column(db.String(256), nullable=False,
-                       default='http://localhost:8000/static/img/avatar/defaultAvatar.png')
+                       default='/static/img/avatar/defaultAvatar.png')
     signature = db.Column(db.String(64), default='暂时没有个性签名~')
 
     # 用户关注关系
