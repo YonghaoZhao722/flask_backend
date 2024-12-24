@@ -1,21 +1,21 @@
+import logging
+from datetime import timedelta
 from functools import wraps
-from datetime import datetime, timedelta
-from flask import jsonify, request
+
+from flask import jsonify
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
-    verify_jwt_in_request,
-    jwt_required
+    verify_jwt_in_request
 )
-import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
 def create_token(user):
     """
-    为用户创建JWT token
+    Create a JWT token for the user
     """
-    expires = timedelta(days=5, hours=12)  # 设置为5天12小时，对应原来的时间
+    expires = timedelta(days=5, hours=12)
     additional_claims = {
         'username': user.username
     }
@@ -29,7 +29,7 @@ def create_token(user):
 
 def auth_required():
     """
-    验证JWT token的装饰器
+    Decorator for validating JWT tokens
     """
 
     def decorator(fn):
@@ -45,11 +45,11 @@ def auth_required():
                 error_msg = str(e)
                 print(error_msg)
                 if "expired" in error_msg.lower():
-                    return jsonify({"error": "登录身份过期"}), 401
+                    return jsonify({"error": "Login expired"}), 401
                 elif "invalid" in error_msg.lower():
-                    return jsonify({"error": "非法的token"}), 401
+                    return jsonify({"error": "Illegal token"}), 401
                 else:
-                    return jsonify({"error": "jwt认证失败"}), 401
+                    return jsonify({"error": "jwt authentication failed"}), 401
 
         return wrapper
 
@@ -58,6 +58,6 @@ def auth_required():
 
 def get_current_user():
     """
-    获取当前登录用户的信息
+    Get the information of the currently logging in user
     """
     return get_jwt_identity()

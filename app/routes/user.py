@@ -1,8 +1,6 @@
 import os
-
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-
 from app.models import db, User
 from app.utils.file_handlers import (
     handle_error, save_file,
@@ -14,9 +12,13 @@ user_bp = Blueprint('user', __name__)
 
 
 @user_bp.route('/focus/', methods=['GET'])
-# @jwt_required()
 @auth_required()
 def get_user_focus():
+    """
+    Get user's following, collected posts, and favorites
+    Returns:
+        JSON containing lists of followed users, collected posts, and liked posts
+    """
     user_id = get_jwt_identity()
 
     if user_id is None:
@@ -26,17 +28,17 @@ def get_user_focus():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    # 添加异常处理
+    # Add error handling
     try:
         response_data = {
-            'follow': [u.id for u in user.following.all()],  # 添加 .all()
+            'follow': [u.id for u in user.following.all()],
             'collected': [p.id for p in user.collected.all()],
             'favorites': [p.id for p in user.favorites.all()]
         }
         print(response_data)
         return jsonify(response_data)
     except Exception as e:
-        print("Error:", str(e))  # 打印具体错误
+        print("Error:", str(e))  # Print specific error
         return jsonify({'error': str(e)}), 500
 
 
@@ -44,37 +46,43 @@ def get_user_focus():
 @jwt_required()
 @handle_error
 def update_avatar():
+    """
+    Update user's avatar
+    Handles file upload, deletes old avatar, and saves new one
+    Returns:
+        JSON with new avatar file information
+    """
     user_id = get_jwt_identity()
     if 'file' not in request.files:
-        return jsonify({'error': '没有文件上传'}), 400
+        return jsonify({'error': 'No file uploaded'}), 400
 
     file = request.files['file']
     if not file:
-        return jsonify({'error': '文件为空'}), 400
+        return jsonify({'error': 'Empty file'}), 400
 
     user = User.query.get_or_404(user_id)
 
-    # 删除旧头像（修正路径处理）
+    # Delete old avatar (fix path handling)
     if user.avatar:
-        # 如果是完整 URL，提取相对路径
+        # Extract relative path if full URL
         old_path = user.avatar.replace('http://localhost:8000', '')
         try:
             old_file = os.path.join(current_app.root_path, old_path.lstrip('/'))
             if os.path.exists(old_file) and 'defaultAvatar' not in old_file:
                 os.remove(old_file)
         except OSError:
-            pass  # 忽略删除失败的错误
+            pass  # Ignore deletion failures
 
-    # 保存新头像
+    # Save new avatar
     filepath = save_file(file, 'avatar', user_id)
     if not filepath:
-        return jsonify({'error': '文件上传失败'}), 400
+        return jsonify({'error': 'File upload failed'}), 400
 
-    # 存储相对路径
+    # Store relative path
     user.avatar = filepath
     db.session.commit()
 
-    # 返回完整 URL 给前端
+    # Return full URL to frontend
     full_path = f"{request.host_url.rstrip('/')}{filepath}"
     return jsonify({
         'filename': file.filename,
@@ -86,6 +94,10 @@ def update_avatar():
 @jwt_required()
 @handle_error
 def update_user_info():
+    """
+    Update user profile information
+    Allows updating signature and username
+    """
     user_id = get_jwt_identity()
     data = request.json
 
@@ -96,13 +108,16 @@ def update_user_info():
         user.username = data['username']
 
     db.session.commit()
-    return jsonify({'info': '修改成功'})
+    return jsonify({'info': 'Update successful'})
 
 
 @user_bp.route('/unfollow/', methods=['POST'])
 @jwt_required()
 @handle_error
 def unfollow():
+    """
+    Unfollow another user
+    """
     user_id = get_jwt_identity()
     target_id = request.json.get('id')
 
@@ -112,16 +127,20 @@ def unfollow():
     if target_user in user.following:
         user.following.remove(target_user)
         db.session.commit()
-        return jsonify({'info': '成功取消关注'})
-    return jsonify({'error': '未关注该用户'}), 400
+        return jsonify({'info': 'Successfully unfollowed'})
+    return jsonify({'error': 'Not following this user'}), 400
 
 
-PAGE_SIZE=10
+PAGE_SIZE = 10
+
 
 @user_bp.route('/remove/fan/', methods=['POST'])
 @jwt_required()
 @handle_error
 def remove_fans():
+    """
+    Remove a follower from user's followers list
+    """
     user_id = get_jwt_identity()
     fan_id = request.json.get('id')
 
@@ -131,14 +150,18 @@ def remove_fans():
     if user in fan.following:
         fan.following.remove(user)
         db.session.commit()
-        return jsonify({'info': '成功移除粉丝'})
-    return jsonify({'error': '该用户不是你的粉丝'}), 400
+        return jsonify({'info': 'Successfully removed follower'})
+    return jsonify({'error': 'This user is not your follower'}), 400
 
 
 @user_bp.route('/post/', methods=['POST'])
 @handle_error
 def query_user_index_post():
-    # 类型映射字典
+    """
+    Query user's posts based on type (Posts/Likes/Collections)
+    Implements pagination and returns paginated results
+    """
+    # Type mapping dictionary
     type_mapping = {
         'Posts': 'posts',
         'Likes': 'favorites',
@@ -148,26 +171,23 @@ def query_user_index_post():
     data = request.json
     user_id = data.get('user_id')
     types = data.get('types')
-    offset = data.get('offset', 0)  # 提供默认值0
-    print(data)
-    # 查询用户
+    offset = data.get('offset', 0)  # Default value 0
+
+    # Query user
     user = User.query.filter_by(id=user_id).first()
-    print(user)
-    print(type_mapping)
-    print(types)
+
     if user and types in type_mapping:
-        print(111)
-        # 获取对应的属性（posts/favorites/collected）
+        # Get corresponding attribute (posts/favorites/collected)
         field_name = type_mapping[types]
         post_query = getattr(user, field_name)
 
-        # 获取总数，用于判断是否还有更多数据
+        # Get total count for pagination
         total_count = post_query.count()
 
-        # 分页查询
+        # Paginated query
         posts = post_query.offset(offset).limit(PAGE_SIZE).all()
 
-        # 判断是否还有更多数据
+        # Check if more data exists
         has_more = (offset + len(posts)) < total_count
 
         if posts:
@@ -180,12 +200,17 @@ def query_user_index_post():
             'has_more': False
         })
 
-    return jsonify({'error': '错误访问'}), 404
+    return jsonify({'error': 'Invalid access'}), 404
+
 
 @user_bp.route('/post/control/', methods=['POST'])
 @jwt_required()
 @handle_error
 def user_control_index():
+    """
+    Control panel for user's posts, collections, favorites, and social connections
+    Handles different types of content with pagination
+    """
     data = request.json
     offset = int(data.get('offset', 0))
     types = data.get('types')
@@ -203,7 +228,7 @@ def user_control_index():
         items = user.followers if types == 'fans' else user.following
         info = get_user_info(items, offset)
     else:
-        return jsonify({'error': '无效的类型'}), 400
+        return jsonify({'error': 'Invalid type'}), 400
 
     return jsonify({
         'info': info,

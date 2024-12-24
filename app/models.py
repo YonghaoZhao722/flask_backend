@@ -1,21 +1,20 @@
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from app import db  # 从 app 包中导入 db
+from app import db
 
-# 用户关注关系的关联表
+# User follow-up relationship association table
 followers = db.Table('followers',
                      db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
                      db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
                      )
 
-# 用户喜爱帖子关联表
+# User favorite posts association table
 favorites = db.Table('favorites',
                      db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
                      db.Column('post_id', db.Integer, db.ForeignKey('post.id'))
                      )
 
-# 用户收藏帖子关联表
+# User collections posts association table
 collections = db.Table('collections',
                        db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
                        db.Column('post_id', db.Integer, db.ForeignKey('post.id'))
@@ -31,9 +30,9 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     avatar = db.Column(db.String(256), nullable=False,
                        default='/static/img/avatar/defaultAvatar.png')
-    signature = db.Column(db.String(64), default='暂时没有个性签名~')
+    signature = db.Column(db.String(64), default='No bio yet~')
 
-    # 用户关注关系
+    # User following relationship
     following = db.relationship('User',
                                 secondary=followers,
                                 primaryjoin=(followers.c.follower_id == id),
@@ -42,21 +41,21 @@ class User(db.Model):
                                 lazy='dynamic'
                                 )
 
-    # 用户喜欢的帖子
+    # user likes
     favorites = db.relationship('Post',
                                 secondary=favorites,
                                 backref=db.backref('favorited_by', lazy='dynamic'),
                                 lazy='dynamic'
                                 )
 
-    # 用户收藏的帖子
+    # user collects
     collected = db.relationship('Post',
                                 secondary=collections,
                                 backref=db.backref('collected_by', lazy='dynamic'),
                                 lazy='dynamic'
                                 )
 
-    # 用户发布的帖子和评论
+    # user posts/comments
     posts = db.relationship('Post', backref='author', lazy='dynamic',
                             cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='author', lazy='dynamic',
@@ -83,7 +82,7 @@ class Post(db.Model):
     content = db.Column(db.Text(), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # 帖子图片和评论
+    # post pics
     images = db.relationship('Image', backref='post', lazy='dynamic',
                              cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='post', lazy='dynamic',
@@ -110,7 +109,7 @@ class Comment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     parent_id = db.Column(db.Integer, db.ForeignKey('comment.id'))
 
-    # 评论回复关系
+    # reply relationship
     replies = db.relationship('Comment',
                               backref=db.backref('parent', remote_side=[id]),
                               lazy='dynamic', cascade='all, delete-orphan')

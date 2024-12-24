@@ -4,8 +4,10 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from config import config
 from flask_migrate import Migrate
+import pymysql
+pymysql.install_as_MySQLdb()
 
-# 实例化扩展
+# Instantiate Extension
 db = SQLAlchemy()
 jwt = JWTManager()
 migrate = Migrate()
@@ -14,7 +16,7 @@ def create_app(config_name='default'):
     app = Flask(__name__, static_folder='static', static_url_path='/static')
     app.config.from_object(config[config_name])
 
-    # 初始化扩展
+    # Initialize Extension
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
@@ -27,7 +29,7 @@ def create_app(config_name='default'):
              "supports_credentials": True
          }})
 
-    # 注册蓝图
+    # Register Blueprint
     from .routes.user import user_bp
     from .routes.post import post_bp
     from .routes.comment import comment_bp
@@ -37,7 +39,7 @@ def create_app(config_name='default'):
     app.register_blueprint(post_bp, url_prefix='/post')
     app.register_blueprint(comment_bp, url_prefix='/comment')
     app.register_blueprint(independent_bp)
-    # 创建上传目录
+    # Create an upload directory
 
     import os
     for dir_name in ['avatar', 'post']:

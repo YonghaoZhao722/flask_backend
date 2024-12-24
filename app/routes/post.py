@@ -15,17 +15,25 @@ PAGE_SIZE = 10
 
 def paginate_query(query, offset):
     """
-    分页查询
-    :param query: SQLAlchemy query对象
-    :param offset: 偏移量
-    :return: 分页后的查询结果
+    Perform pagination on database query
+    Args:
+        query: SQLAlchemy query object
+        offset: Number of records to skip
+    Returns:
+        List of paginated query results
     """
     return query.offset(offset).limit(PAGE_SIZE).all()
 
 
-# 添加 KMP 搜索算法的实现
+# Implementation of KMP search algorithm
 def build_next(pattern):
-    """构建 KMP 算法的 next 数组"""
+    """
+    Build the next array for KMP algorithm
+    Args:
+        pattern: String pattern to build next array for
+    Returns:
+        List containing the next array values
+    """
     next_array = [0]
     prefix = 0
     i = 1
@@ -45,7 +53,14 @@ def build_next(pattern):
 
 
 def kmp_search(text, pattern):
-    """KMP Search Algorithm"""
+    """
+    Perform KMP string search algorithm
+    Args:
+        text: Source text to search in
+        pattern: Pattern to search for
+    Returns:
+        Starting index of pattern if found, -1 otherwise
+    """
     if not pattern or not text:
         return -1
 
@@ -68,6 +83,12 @@ def kmp_search(text, pattern):
 @post_bp.route('/detail/', methods=['POST', 'GET'])
 @handle_error
 def get_post_detail():
+    """
+    Get detailed information for a specific post
+    Returns:
+        JSON object containing post details including title, images, author info,
+        timestamps, and engagement metrics
+    """
     post_id = request.json.get('id')
     post = Post.query.get_or_404(post_id)
 
@@ -90,17 +111,21 @@ def get_post_detail():
     })
 
 
-
 @post_bp.route('/', methods=['POST', 'GET'])
 @handle_error
 def query_post_index():
+    """
+    Query posts with optional search and pagination
+    Returns:
+        JSON object containing list of posts and pagination info
+    """
     print(f"Request method: {request.method}")
     print(f"Request data: {request.json}")
 
     offset = int(request.json.get('offset', 0))
     search_query = request.json.get('query', '').lower()
 
-    # 获取按时间倒序排列的帖子
+    # Get posts ordered by creation time descending
     posts = Post.query.order_by(Post.created_at.desc())
 
     if search_query:
@@ -130,6 +155,11 @@ def query_post_index():
 @jwt_required()
 @handle_error
 def control_like_collect():
+    """
+    Handle post like and collection operations
+    Returns:
+        JSON response indicating success or failure of the operation
+    """
     user_id = get_jwt_identity()
     data = request.json
     post_id = data.get('post_id')
@@ -141,61 +171,63 @@ def control_like_collect():
 
     try:
         if type_ == 'like':
-            if operator:  # 删除喜欢
+            if operator:  # Remove like
                 if post in user.favorites:
                     user.favorites.remove(post)
                     msg = 'Unliked Successfully'
-            else:  # 添加喜欢
+            else:  # Add like
                 if post not in user.favorites:
                     user.favorites.append(post)
-                    msg = 'Like Successfully'
+                    msg = 'Liked Successfully'
         elif type_ == 'collect':
-            if operator:  # 取消收藏
+            if operator:  # Remove from collection
                 if post in user.collected:
                     user.collected.remove(post)
-                    msg = '成功取消收藏'
-            else:  # 添加收藏
+                    msg = 'Successfully removed from collection'
+            else:  # Add to collection
                 if post not in user.collected:
                     user.collected.append(post)
-                    msg = '成功添加收藏'
+                    msg = 'Successfully added to collection'
         else:
-            return jsonify({'error': '无效的操作类型'}), 400
+            return jsonify({'error': 'Invalid operation type'}), 400
 
         db.session.commit()
         return jsonify({'info': msg})
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Post control failed: {str(e)}")
-        return jsonify({'error': '操作失败'}), 400
+        return jsonify({'error': 'Operation failed'}), 400
 
 
 @post_bp.route('/delete/', methods=['POST', 'GET'])
 @auth_required()
 @handle_error
 def post_delete():
+    """
+    Delete a post and its associated images
+    Returns:
+        JSON response indicating success or failure of deletion
+    """
     user_id = get_jwt_identity()
     post_id = request.json.get('id')
 
     post = Post.query.get_or_404(post_id)
 
     print(f"Post user_id: {post.user_id}, Current user_id: {user_id}")
-    print(type(post.user_id),type(user_id))
+    print(type(post.user_id), type(user_id))
     if post.user_id != int(user_id):
-        return jsonify({'error': '无权删除该帖子'}), 403
+        return jsonify({'error': 'Unauthorized to delete this post'}), 403
 
     try:
-        # 删除帖子相关的图片文件
+        # Delete associated image files
         path = current_app.config['UPLOAD_FOLDER'] + '/post/'
         check_and_delete(id=post_id, mainPath=path)
 
-        # 删除帖子及其关联数据
+        # Delete post and related data
         db.session.delete(post)
         db.session.commit()
-        return jsonify({'success': '帖子删除成功'})
+        return jsonify({'success': 'Post deleted successfully'})
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Post deletion failed: {str(e)}")
-        return jsonify({'error': '删除失败'}), 400
-
-
-
+        return jsonify({'error': 'Deletion failed'}), 400

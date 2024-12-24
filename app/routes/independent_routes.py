@@ -7,7 +7,7 @@ from app.utils.file_handlers import (
     handle_error, check_email, save_file
 )
 
-# 创建独立路由蓝图
+# Creating a Standalone Routing Blueprint
 independent_bp = Blueprint('independent', __name__)
 
 @independent_bp.route('/login/', methods=['POST'])
@@ -79,7 +79,6 @@ def change_password():
     old_password = data.get('old_password')
     new_password = data.get('new_password')
 
-    # 获取当前用户ID
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
 
@@ -133,7 +132,7 @@ def focus_on():
     target_id = request.json.get('id')
 
     if user_id == target_id:
-        return jsonify({'error': '不能关注自己'}), 400
+        return jsonify({'error': 'Cannot follow yourself'}), 400
 
     user = User.query.get_or_404(user_id)
     target_user = User.query.get_or_404(target_id)
@@ -141,8 +140,8 @@ def focus_on():
     if target_user not in user.following:
         user.following.append(target_user)
         db.session.commit()
-        return jsonify({'info': '成功关注'})
-    return jsonify({'error': '已经关注该用户'}), 400
+        return jsonify({'info': 'Follow successfully'})
+    return jsonify({'error': 'Already following this user'}), 400
 
 # 帖子相关
 @independent_bp.route('/upload/', methods=['POST', 'GET'])
@@ -151,18 +150,17 @@ def focus_on():
 def upload_post():
     post_id = request.form.get('id')
     if 'file' not in request.files:
-        return jsonify({'error': '没有文件上传'}), 400
+        return jsonify({'error': 'No files uploaded'}), 400
 
     file = request.files['file']
     if not file:
-        return jsonify({'error': '文件为空'}), 400
+        return jsonify({'error': 'File is empty'}), 400
 
     filepath = save_file(file, 'post', post_id)
     if not filepath:
-        return jsonify({'error': '文件上传失败'}), 400
+        return jsonify({'error': 'File upload failed'}), 400
 
     try:
-        # 只存储相对路径
         image = Image(
             post_id=post_id,
             image_path=filepath,
@@ -172,13 +170,13 @@ def upload_post():
         db.session.add(image)
         db.session.commit()
 
-        # 返回完整 URL 给前端
+        # Return the full URL to the front end
         full_path = f"{request.host_url.rstrip('/')}{filepath}"
         return jsonify({'data': 'success', 'filepath': full_path})
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Image save failed: {str(e)}")
-        return jsonify({'error': '保存图片信息失败'}), 400
+        return jsonify({'error': 'Failed to save image information'}), 400
 
 @independent_bp.route('/upload/info/', methods=['POST', 'GET'])
 @jwt_required()
@@ -189,7 +187,7 @@ def upload_post_info():
 
     # 验证用户身份
     if str(user_id) != str(data.get('user_id')):
-        return jsonify({'error': '用户身份验证失败'}), 401
+        return jsonify({'error': 'User authentication failed'}), 401
 
     try:
         post = Post(
@@ -206,4 +204,4 @@ def upload_post_info():
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Post creation failed: {str(e)}")
-        return jsonify({'error': '创建帖子失败'}), 400
+        return jsonify({'error': 'Failed to create post'}), 400

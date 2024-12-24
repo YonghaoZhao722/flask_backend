@@ -1,15 +1,14 @@
 import os
-import pytz
-from datetime import datetime
 from functools import wraps
+import pytz
 from flask import current_app
 from sqlalchemy import desc
-from app.models import User, Post
-
+from app.models import User
 
 def convert_to_timezone(datetime_obj, timezone_str='Asia/Shanghai'):
     """
-    转换时间为指定时区
+    Convert UTC datetime to specified timezone (default: Asia/Shanghai)
+    Returns formatted datetime string in 'YYYY-MM-DD HH:MM' format
     """
     if not datetime_obj.tzinfo:
         datetime_obj = pytz.UTC.localize(datetime_obj)
@@ -17,19 +16,20 @@ def convert_to_timezone(datetime_obj, timezone_str='Asia/Shanghai'):
     converted_datetime = datetime_obj.astimezone(target_timezone)
     return converted_datetime.strftime('%Y-%m-%d %H:%M')
 
-
 def check_email(email):
     """
-    检查邮箱是否已存在
+    Check if email already exists in database
+    Returns True if email exists, False otherwise
     """
     return User.query.filter_by(email=email).first() is not None
 
-
 def combine_index_post(posts):
     """
-    整合首页帖子信息
+    Process and combine post information for homepage display
+    Extracts essential post data including title, images, and author info
+    Returns list of formatted post dictionaries
     """
-    result = []  # 用于存储最终的结果
+    result = []
     for post in posts:
         imgs = post.images.all()
         if not imgs:
@@ -52,11 +52,14 @@ def combine_index_post(posts):
         })
     return result
 
-
-
 def check_and_delete(*, id, mainPath):
     """
-    检查和删除图片文件
+    Check and delete image files with specified ID prefix
+    Args:
+        id: File ID prefix to match
+        mainPath: Directory path to search for files
+    Returns:
+        True if file was found and deleted, False otherwise
     """
     try:
         file_list = os.listdir(mainPath)
@@ -71,10 +74,15 @@ def check_and_delete(*, id, mainPath):
         current_app.logger.error(f"Error deleting file: {str(e)}")
         return False
 
-
 def paginate_query(query, offset, limit=3):
     """
-    分页查询
+    Perform pagination on database query
+    Args:
+        query: SQLAlchemy query object
+        offset: Starting position
+        limit: Number of items per page (default: 3)
+    Returns:
+        List of query results for requested page
     """
     try:
         offset = int(offset)
@@ -85,10 +93,11 @@ def paginate_query(query, offset, limit=3):
     except (ValueError, TypeError):
         return []
 
-
 def get_user_post_info(posts, offset):
     """
-    获取用户帖子信息
+    Retrieve paginated user post information
+    Includes post metadata like dates, likes, comments etc.
+    Returns list of formatted post dictionaries
     """
     paginated_posts = paginate_query(posts, offset, 10)
     return [{
@@ -102,10 +111,11 @@ def get_user_post_info(posts, offset):
         'username': post.author.username,
     } for post in paginated_posts if post]
 
-
 def get_user_info(users, offset):
     """
-    获取用户信息
+    Retrieve paginated user profile information
+    Includes user stats like followers, following count etc.
+    Returns list of formatted user dictionaries
     """
     paginated_users = paginate_query(users, offset, 10)
     return [{
@@ -117,18 +127,23 @@ def get_user_info(users, offset):
         'note': user.posts.count()
     } for user in paginated_users]
 
-
 def allowed_file(filename):
     """
-    检查文件类型是否允许
+    Check if uploaded file has allowed image extension
+    Returns True if file extension is in allowed list, False otherwise
     """
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_IMAGE_EXTENSIONS']
 
-
 def save_file(file, folder, id_prefix):
     """
-    保存文件
+    Save uploaded file to specified folder with ID prefix
+    Args:
+        file: File object to save
+        folder: Target folder name
+        id_prefix: Prefix to add to filename
+    Returns:
+        Path to saved file or None if save failed
     """
     if file and allowed_file(file.filename):
         filename = f"{id_prefix}-{file.filename}"
@@ -137,18 +152,17 @@ def save_file(file, folder, id_prefix):
         return os.path.join('/static/img', folder, filename)
     return None
 
-
 def handle_error(f):
     """
-    错误处理装饰器
+    Decorator for handling function errors
+    Catches exceptions and returns error response
+    Logs error details to application logger
     """
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
         try:
             return f(*args, **kwargs)
         except Exception as e:
             current_app.logger.error(f"Error in {f.__name__}: {str(e)}")
-            return {'error': '服务器内部错误'}, 500
-
+            return {'error': 'Internal Server Error'}, 500
     return decorated_function
