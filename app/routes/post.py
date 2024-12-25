@@ -119,9 +119,6 @@ def query_post_index():
     Returns:
         JSON object containing list of posts and pagination info
     """
-    print(f"Request method: {request.method}")
-    print(f"Request data: {request.json}")
-
     offset = int(request.json.get('offset', 0))
     search_query = request.json.get('query', '').lower()
 
